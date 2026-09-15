@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Altinn.Profile.Core.Person.ContactPreferences;
 using Altinn.Profile.Core.User.ContactPoints;
 using Altinn.Profile.Models;
+using Altinn.Profile.Tests.IntegrationTests.Utils;
 using Altinn.Profile.Tests.Testdata;
 
 using Moq;
@@ -70,6 +71,7 @@ public class UserContactPointControllerTests : IClassFixture<ProfileWebApplicati
 
         HttpClient client = _factory.CreateClient();
         HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/profile/api/v1/users/contactpoint/availability");
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         httpRequestMessage.Content = new StringContent(JsonSerializer.Serialize(input, _serializerOptions), System.Text.Encoding.UTF8, "application/json");
 
@@ -96,6 +98,7 @@ public class UserContactPointControllerTests : IClassFixture<ProfileWebApplicati
 
         HttpClient client = _factory.CreateClient();
         HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/profile/api/v1/users/contactpoint/availability");
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         httpRequestMessage.Content = new StringContent(JsonSerializer.Serialize(input, _serializerOptions), System.Text.Encoding.UTF8, "application/json");
 
@@ -122,6 +125,7 @@ public class UserContactPointControllerTests : IClassFixture<ProfileWebApplicati
 
         HttpClient client = _factory.CreateClient();
         HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/profile/api/v1/users/contactpoint/availability");
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         httpRequestMessage.Content = new StringContent(JsonSerializer.Serialize(input, _serializerOptions), System.Text.Encoding.UTF8, "application/json");
 
@@ -147,6 +151,7 @@ public class UserContactPointControllerTests : IClassFixture<ProfileWebApplicati
 
         HttpClient client = _factory.CreateClient();
         HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/profile/api/v1/users/contactpoint/lookup");
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         httpRequestMessage.Content = new StringContent(JsonSerializer.Serialize(input, _serializerOptions), System.Text.Encoding.UTF8, "application/json");
 
@@ -172,6 +177,7 @@ public class UserContactPointControllerTests : IClassFixture<ProfileWebApplicati
 
         HttpClient client = _factory.CreateClient();
         HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/profile/api/v1/users/contactpoint/lookup");
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         httpRequestMessage.Content = new StringContent(JsonSerializer.Serialize(input, _serializerOptions), System.Text.Encoding.UTF8, "application/json");
 
@@ -198,6 +204,7 @@ public class UserContactPointControllerTests : IClassFixture<ProfileWebApplicati
 
         HttpClient client = _factory.CreateClient();
         HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/profile/api/v1/users/contactpoint/lookup");
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         httpRequestMessage.Content = new StringContent(JsonSerializer.Serialize(input, _serializerOptions), System.Text.Encoding.UTF8, "application/json");
 
@@ -210,6 +217,42 @@ public class UserContactPointControllerTests : IClassFixture<ProfileWebApplicati
         var actual = JsonSerializer.Deserialize<UserContactPointsList>(responseContent, _serializerOptions);
         Assert.Single(actual.ContactPointsList);
         Assert.NotEmpty(actual.ContactPointsList[0].Email);
+    }
+
+    [Theory]
+    [InlineData("/profile/api/v1/users/contactpoint/availability")]
+    [InlineData("/profile/api/v1/users/contactpoint/lookup")]
+    public async Task Post_MissingPlatformAccessToken_ResponseUnauthorized(string url)
+    {
+        // Arrange
+        UserContactDetailsLookupCriteria input = new() { NationalIdentityNumbers = ["01025101037"] };
+
+        HttpClient client = _factory.CreateClient();
+        HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, url);
+        httpRequestMessage.Content = new StringContent(JsonSerializer.Serialize(input, _serializerOptions), System.Text.Encoding.UTF8, "application/json");
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(httpRequestMessage, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostLookupSi_MissingPlatformAccessToken_ResponseUnauthorized()
+    {
+        // Arrange
+        SelfIdentifiedContactDetailsLookupCriteria input = new() { ExternalIdentities = ["someone@example.com"] };
+
+        HttpClient client = _factory.CreateClient();
+        HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/profile/api/v1/users/contactpoint/lookupsi");
+        httpRequestMessage.Content = new StringContent(JsonSerializer.Serialize(input, _serializerOptions), System.Text.Encoding.UTF8, "application/json");
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(httpRequestMessage, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     private static async Task<UserProfile> GetStoredDataForSsn(string ssn)
