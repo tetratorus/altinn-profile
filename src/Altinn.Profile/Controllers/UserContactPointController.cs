@@ -2,17 +2,21 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Altinn.Profile.Authorization;
 using Altinn.Profile.Core.User.ContactPoints;
 using Altinn.Profile.Models;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Profile.Controllers;
 
 /// <summary>
-/// Controller for user profile contact point API endpoints for internal consumption (e.g. Notifications) requiring neither authenticated user token nor access token authorization.
+/// Controller for user profile contact point API endpoints for internal consumption (e.g. Notifications).
+/// Callers must present a valid PlatformAccessToken; no authenticated user token is required.
 /// </summary>
+[Authorize(Policy = AuthConstants.PlatformAccess)]
 [ApiController]
 [Route("profile/api/v1/users/contactpoint")]
 [ApiExplorerSettings(IgnoreApi = true)]
