@@ -4,18 +4,21 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Altinn.Profile.Authorization;
 using Altinn.Profile.Core;
 using Altinn.Profile.Core.User;
 using Altinn.Profile.Models;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Profile.Controllers;
 
 /// <summary>
-/// Controller for user profile API endpoints for internal consumption (e.g. Authorization) requiring neither authenticated user token nor access token authorization.
+/// Controller for user profile API endpoints for internal consumption (e.g. Authorization). Requires a valid platform access token.
 /// </summary>
+[Authorize(Policy = AuthConstants.PlatformAccess)]
 [Route("profile/api/v1/internal/user")]
 [ApiExplorerSettings(IgnoreApi = true)]
 [Consumes("application/json")]

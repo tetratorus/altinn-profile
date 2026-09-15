@@ -11,6 +11,7 @@ using Altinn.Authorization.ModelUtils;
 using Altinn.Profile.Core.User.ProfileSettings;
 using Altinn.Profile.Models;
 using Altinn.Profile.Tests.IntegrationTests.Mocks;
+using Altinn.Profile.Tests.IntegrationTests.Utils;
 using Altinn.Profile.Tests.Testdata;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.Testing;
@@ -435,10 +436,46 @@ public class UserProfileInternalControllerTests : IClassFixture<ProfileWebApplic
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    private static HttpRequestMessage CreatePostRequest(string requestUri, UserProfileLookup lookupRequest)
+    [Fact]
+    public async Task GetUserById_MissingPlatformAccessToken_ResponseUnauthorized()
+    {
+        // Arrange
+        HttpRequestMessage httpRequestMessage = CreatePostRequest($"/profile/api/v1/internal/user/", new UserProfileLookup { UserId = 2516356 }, includePlatformAccessToken: false);
+
+        HttpClient client = _factory.CreateClient();
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(httpRequestMessage, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetUserById_InvalidPlatformAccessToken_ResponseUnauthorized()
+    {
+        // Arrange
+        HttpRequestMessage httpRequestMessage = CreatePostRequest($"/profile/api/v1/internal/user/", new UserProfileLookup { UserId = 2516356 }, includePlatformAccessToken: false);
+        httpRequestMessage.Headers.Add("PlatformAccessToken", "not-a-valid-token");
+
+        HttpClient client = _factory.CreateClient();
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(httpRequestMessage, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    private static HttpRequestMessage CreatePostRequest(string requestUri, UserProfileLookup lookupRequest, bool includePlatformAccessToken = true)
     {
         HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, requestUri);
         httpRequestMessage.Content = new StringContent(JsonSerializer.Serialize(lookupRequest), Encoding.UTF8, "application/json");
+        if (includePlatformAccessToken)
+        {
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+        }
+
         return httpRequestMessage;
     }
 }
