@@ -115,6 +115,11 @@ public class UsersControllerTests : IClassFixture<ProfileWebApplicationFactory<P
         Assert.True(actualUser.IsReserved);
         Assert.Equal("test@mail.com", actualUser.Email);
         Assert.Equal("+4798765432", actualUser.PhoneNumber);
+
+        // UserType and PartyTypeName are deliberately kept numeric in responses for existing consumers.
+        using JsonDocument json = JsonDocument.Parse(responseContent);
+        Assert.Equal(JsonValueKind.Number, json.RootElement.GetProperty("userType").ValueKind);
+        Assert.Equal(JsonValueKind.Number, json.RootElement.GetProperty("party").GetProperty("partyTypeName").ValueKind);
     }
 
     [Fact]

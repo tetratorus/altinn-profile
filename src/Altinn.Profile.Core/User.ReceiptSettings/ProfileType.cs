@@ -1,12 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Altinn.Profile.Core.User.ReceiptSettings;
 
 /// <summary>
 /// Specifies the type of user profile.
 /// </summary>
-/// 
-[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ProfileType
 {
     /// <summary>
