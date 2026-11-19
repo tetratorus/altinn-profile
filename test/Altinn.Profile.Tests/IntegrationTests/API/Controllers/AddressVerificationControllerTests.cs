@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,7 +25,8 @@ namespace Altinn.Profile.Tests.IntegrationTests.API.Controllers
     {
         private readonly JsonSerializerOptions _serializerOptionsCamelCase = new()
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter() }
         };
 
         private readonly ProfileWebApplicationFactory<Program> _factory;
@@ -74,6 +76,10 @@ namespace Altinn.Profile.Tests.IntegrationTests.API.Controllers
             Assert.Equal(verifiedAddresses[0].AddressType, verifiedAddressResponse[0].Type);
             Assert.Equal(verifiedAddresses[1].Address, verifiedAddressResponse[1].Value);
             Assert.Equal(verifiedAddresses[1].AddressType, verifiedAddressResponse[1].Type);
+
+            using JsonDocument json = JsonDocument.Parse(responseContent);
+            Assert.Equal("Email", json.RootElement[0].GetProperty("type").GetString());
+            Assert.Equal("Sms", json.RootElement[1].GetProperty("type").GetString());
         }
 
         [Fact]
@@ -478,6 +484,32 @@ namespace Altinn.Profile.Tests.IntegrationTests.API.Controllers
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
+        [Theory]
+        [InlineData("0")]
+        [InlineData("1")]
+        [InlineData("\"0\"")]
+        public async Task VerifyAddress_WhenAddressTypeIsInteger_ReturnsBadRequest(string integerType)
+        {
+            // Arrange
+            const int userId = 2516357;
+            var json = $"{{\"value\":\"valid@email.com\",\"type\":{integerType},\"verificationCode\":\"123456\"}}";
+
+            HttpClient client = _factory.CreateClient();
+
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "profile/api/v1/users/current/verification/verify")
+            {
+                Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+            };
+            httpRequestMessage = AddAuthHeadersToRequest(httpRequestMessage, userId);
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            _factory.AddressVerificationRepositoryMock.VerifyNoOtherCalls();
+        }
+
         [Fact]
         public async Task VerifyAddress_WhenUserHasNoStoredCode_ReturnsUnprocessableEntity()
         {
@@ -645,6 +677,33 @@ namespace Altinn.Profile.Tests.IntegrationTests.API.Controllers
             // Assert
             Assert.NotNull(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("valid@email.com", "0")]
+        [InlineData("+4798765432", "1")]
+        [InlineData("valid@email.com", "\"0\"")]
+        public async Task SendCode_WhenAddressTypeIsInteger_ReturnsBadRequest(string address, string integerType)
+        {
+            // Arrange
+            const int userId = 2516360;
+            var json = $"{{\"value\":\"{address}\",\"type\":{integerType}}}";
+
+            HttpClient client = _factory.CreateClient();
+
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "profile/api/v1/users/current/verification/send")
+            {
+                Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+            };
+            httpRequestMessage = AddAuthHeadersToRequest(httpRequestMessage, userId);
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            _factory.AddressVerificationRepositoryMock.VerifyNoOtherCalls();
+            _factory.NotificationsClientMock.VerifyNoOtherCalls();
         }
 
         [Fact]

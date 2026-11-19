@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 using Altinn.Common.AccessToken;
@@ -23,6 +24,8 @@ using Altinn.Profile.Health;
 using Altinn.Profile.Integrations;
 using Altinn.Profile.Integrations.Extensions;
 using Altinn.Profile.Middleware;
+using Altinn.Profile.Models.Enums;
+using Altinn.Register.Contracts.V1;
 
 using AltinnCore.Authentication.JwtCookie;
 
@@ -149,6 +152,12 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
         .AddJsonOptions(opts =>
     {
         opts.JsonSerializerOptions.Converters.Add(new OptionalJsonConverterFactory());
+
+        // Enums are written as strings and only accept strings when read; integers are rejected.
+        // Exceptions below stay numeric because existing consumers of UserProfile rely on it.
+        opts.JsonSerializerOptions.Converters.Add(new JsonNumberEnumConverter<UserType>());
+        opts.JsonSerializerOptions.Converters.Add(new JsonNumberEnumConverter<PartyType>());
+        opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
     });
 
     services.AddMemoryCache();

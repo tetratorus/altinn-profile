@@ -1,11 +1,8 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Altinn.Profile.Core.User.ProfileSettings
+﻿namespace Altinn.Profile.Core.User.ProfileSettings
 {
     /// <summary>
     /// Enumeration of supported languages for user profile settings.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter<Language>))]
     public enum Language
     {
         /// <summary>

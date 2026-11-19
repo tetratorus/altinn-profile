@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,7 +27,8 @@ public class UsersControllerProfileSettingsTests : IClassFixture<ProfileWebAppli
 
     private readonly JsonSerializerOptions _serializerOptionsCamelCase = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     public UsersControllerProfileSettingsTests(ProfileWebApplicationFactory<Program> factory)
@@ -334,6 +336,60 @@ public class UsersControllerProfileSettingsTests : IClassFixture<ProfileWebAppli
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("1")]
+    [InlineData("\"2\"")]
+    public async Task PutCurrentProfileSettings_WithIntegerLanguage_ReturnsBadRequest(string integerLanguage)
+    {
+        // Arrange
+        const int userId = 2516356;
+
+        HttpClient client = _factory.CreateClient();
+
+        string payload = $"{{\"language\":{integerLanguage},\"doNotPromptForParty\":true,\"showClientUnits\":true,\"shouldShowSubEntities\":true,\"shouldShowDeletedEntities\":false}}";
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/profile/api/v1/users/current/profilesettings")
+        {
+            Content = new StringContent(payload, Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", PrincipalUtil.GetToken(userId));
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        _factory.ProfileSettingsRepositoryMock.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("1")]
+    [InlineData("\"2\"")]
+    public async Task PatchUsersCurrent_AsUser_WithIntegerLanguage_ReturnsBadRequest(string integerLanguage)
+    {
+        // Arrange
+        const int userId = 410000;
+
+        HttpClient client = _factory.CreateClient();
+
+        string payload = $"{{\"language\":{integerLanguage}}}";
+
+        var request = new HttpRequestMessage(HttpMethod.Patch, "/profile/api/v1/users/current/profilesettings")
+        {
+            Content = new StringContent(payload, Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", PrincipalUtil.GetToken(userId));
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        _factory.ProfileSettingsRepositoryMock.VerifyNoOtherCalls();
     }
 
     [Fact]
